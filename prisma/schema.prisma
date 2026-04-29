@@ -1,0 +1,466 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../app/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// ─── Enums ────────────────────────────────────────────────────────────────────
+
+enum Role {
+  OWNER
+  ADMIN
+  MEMBER
+  VIEWER
+}
+
+enum Plan {
+  FREE
+  PRO
+  AGENCY
+}
+
+enum JobType {
+  KEYWORD_RANK_CHECK
+  DOMAIN_SNAPSHOT
+  BACKLINK_SCAN
+  ON_PAGE_AUDIT
+  COMPETITOR_SNAPSHOT
+  AI_BRAND_CHECK
+  REPORT_GENERATION
+}
+
+enum JobStatus {
+  PENDING
+  RUNNING
+  COMPLETED
+  FAILED
+}
+
+enum IssueSeverity {
+  CRITICAL
+  WARNING
+  NOTICE
+}
+
+enum LinkStatus {
+  ACTIVE
+  LOST
+  NEW
+}
+
+enum Sentiment {
+  POSITIVE
+  NEUTRAL
+  NEGATIVE
+}
+
+enum SearchEngine {
+  GOOGLE
+  BING
+  YAHOO
+  YANDEX
+  DUCKDUCKGO
+}
+
+enum ApiType {
+  OPENAI
+  CLAUDE
+  GEMINI
+  PERPLEXITY
+}
+
+// ─── Organization ─────────────────────────────────────────────────────────────
+
+model Organization {
+  id        String   @id @default(cuid())
+  name      String
+  slug      String   @unique
+  plan      Plan     @default(FREE)
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  users    User[]
+  projects Project[]
+
+  @@map("organizations")
+}
+
+// ─── User ─────────────────────────────────────────────────────────────────────
+
+model User {
+  id             String    @id @default(cuid())
+  email          String    @unique
+  name           String?
+  image          String?
+  role           Role      @default(MEMBER)
+  organizationId String    @map("organization_id")
+  emailVerified  DateTime? @map("email_verified")
+  createdAt      DateTime  @default(now()) @map("created_at")
+  updatedAt      DateTime  @updatedAt @map("updated_at")
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  projects     Project[]
+  accounts     Account[]
+  sessions     Session[]
+
+  @@index([organizationId])
+  @@map("users")
+}
+
+// ─── NextAuth ─────────────────────────────────────────────────────────────────
+
+model Account {
+  id                String  @id @default(cuid())
+  userId            String  @map("user_id")
+  type              String
+  provider          String
+  providerAccountId String  @map("provider_account_id")
+  refresh_token     String? @db.Text
+  access_token      String? @db.Text
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String? @db.Text
+  session_state     String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+  @@map("accounts")
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique @map("session_token")
+  userId       String   @map("user_id")
+  expires      DateTime
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("sessions")
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+  @@map("verification_tokens")
+}
+
+// ─── Project ──────────────────────────────────────────────────────────────────
+
+model Project {
+  id             String    @id @default(cuid())
+  name           String
+  domain         String
+  organizationId String    @map("organization_id")
+  userId         String    @map("user_id")
+  faviconUrl     String?   @map("favicon_url")
+  isActive       Boolean   @default(true) @map("is_active")
+  lastCrawledAt  DateTime? @map("last_crawled_at")
+  healthScore    Float?    @map("health_score")
+  createdAt      DateTime  @default(now()) @map("created_at")
+  updatedAt      DateTime  @updatedAt @map("updated_at")
+
+  organization         Organization          @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  user                 User                  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  domainSnapshots      DomainSnapshot[]
+  keywords             Keyword[]
+  keywordRankings      KeywordRanking[]
+  backlinks            Backlink[]
+  referringDomains     ReferringDomain[]
+  onPageAudits         OnPageAudit[]
+  onPageIssues         OnPageIssue[]
+  aiBrandMentionChecks AIBrandMentionCheck[]
+  competitors          Competitor[]
+  competitorSnapshots  CompetitorSnapshot[]
+  scheduledJobs        ScheduledJob[]
+  reports              Report[]
+
+  @@index([organizationId])
+  @@index([userId])
+  @@index([domain])
+  @@map("projects")
+}
+
+// ─── Domain Snapshot ──────────────────────────────────────────────────────────
+
+model DomainSnapshot {
+  id                    String   @id @default(cuid())
+  projectId             String   @map("project_id")
+  domainAuthority       Float?   @map("domain_authority")
+  backlinksCount        Int?     @map("backlinks_count")
+  referringDomainsCount Int?     @map("referring_domains_count")
+  organicKeywords       Int?     @map("organic_keywords")
+  organicTraffic        Int?     @map("organic_traffic")
+  spamScore             Float?   @map("spam_score")
+  snapshotDate          DateTime @map("snapshot_date")
+  provider              String?
+  isDemo                Boolean  @default(false) @map("is_demo")
+
+  project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  @@index([projectId])
+  @@index([snapshotDate])
+  @@index([projectId, snapshotDate])
+  @@map("domain_snapshots")
+}
+
+// ─── Keyword ──────────────────────────────────────────────────────────────────
+
+model Keyword {
+  id           String       @id @default(cuid())
+  projectId    String       @map("project_id")
+  term         String
+  searchEngine SearchEngine @default(GOOGLE) @map("search_engine")
+  country      String?
+  language     String?
+  searchVolume Int?         @map("search_volume")
+  isActive     Boolean      @default(true) @map("is_active")
+  createdAt    DateTime     @default(now()) @map("created_at")
+  updatedAt    DateTime     @updatedAt @map("updated_at")
+
+  project         Project          @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  keywordRankings KeywordRanking[]
+
+  @@index([projectId])
+  @@index([projectId, isActive])
+  @@map("keywords")
+}
+
+// ─── Keyword Ranking ──────────────────────────────────────────────────────────
+
+model KeywordRanking {
+  id               String   @id @default(cuid())
+  keywordId        String   @map("keyword_id")
+  projectId        String   @map("project_id")
+  position         Int?
+  url              String?  @db.Text
+  snapshotDate     DateTime @map("snapshot_date")
+  previousPosition Int?     @map("previous_position")
+  change           Int?
+  isDemo           Boolean  @default(false) @map("is_demo")
+
+  keyword Keyword @relation(fields: [keywordId], references: [id], onDelete: Cascade)
+  project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  @@index([keywordId])
+  @@index([projectId])
+  @@index([snapshotDate])
+  @@index([keywordId, snapshotDate])
+  @@map("keyword_rankings")
+}
+
+// ─── Backlink ─────────────────────────────────────────────────────────────────
+
+model Backlink {
+  id              String     @id @default(cuid())
+  projectId       String     @map("project_id")
+  sourceUrl       String     @db.Text @map("source_url")
+  targetUrl       String     @db.Text @map("target_url")
+  anchorText      String?    @db.Text @map("anchor_text")
+  isFollow        Boolean    @default(true) @map("is_follow")
+  firstSeen       DateTime?  @map("first_seen")
+  lastSeen        DateTime?  @map("last_seen")
+  status          LinkStatus @default(ACTIVE)
+  referringDomain String?    @map("referring_domain")
+  domainAuthority Float?     @map("domain_authority")
+  linkType        String?    @map("link_type")
+  isDemo          Boolean    @default(false) @map("is_demo")
+
+  project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  @@index([projectId])
+  @@index([projectId, status])
+  @@index([referringDomain])
+  @@map("backlinks")
+}
+
+// ─── Referring Domain ─────────────────────────────────────────────────────────
+
+model ReferringDomain {
+  id              String    @id @default(cuid())
+  projectId       String    @map("project_id")
+  domain          String
+  domainAuthority Float?    @map("domain_authority")
+  backlinksCount  Int?      @default(0) @map("backlinks_count")
+  firstSeen       DateTime? @map("first_seen")
+  lastSeen        DateTime? @map("last_seen")
+  isActive        Boolean   @default(true) @map("is_active")
+  isDemo          Boolean   @default(false) @map("is_demo")
+
+  project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  @@index([projectId])
+  @@index([projectId, isActive])
+  @@map("referring_domains")
+}
+
+// ─── On-Page Audit ────────────────────────────────────────────────────────────
+
+model OnPageAudit {
+  id             String    @id @default(cuid())
+  projectId      String    @map("project_id")
+  startedAt      DateTime? @map("started_at")
+  completedAt    DateTime? @map("completed_at")
+  totalPages     Int?      @default(0) @map("total_pages")
+  totalIssues    Int?      @default(0) @map("total_issues")
+  criticalIssues Int?      @default(0) @map("critical_issues")
+  warningIssues  Int?      @default(0) @map("warning_issues")
+  noticeIssues   Int?      @default(0) @map("notice_issues")
+  healthScore    Float?    @map("health_score")
+  isDemo         Boolean   @default(false) @map("is_demo")
+
+  project      Project       @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  onPageIssues OnPageIssue[]
+
+  @@index([projectId])
+  @@index([projectId, completedAt])
+  @@map("on_page_audits")
+}
+
+// ─── On-Page Issue ────────────────────────────────────────────────────────────
+
+model OnPageIssue {
+  id             String        @id @default(cuid())
+  auditId        String        @map("audit_id")
+  projectId      String        @map("project_id")
+  url            String        @db.Text
+  issueType      String        @map("issue_type")
+  severity       IssueSeverity
+  title          String
+  description    String?       @db.Text
+  recommendation String?       @db.Text
+  isFixed        Boolean       @default(false) @map("is_fixed")
+  createdAt      DateTime      @default(now()) @map("created_at")
+  updatedAt      DateTime      @updatedAt @map("updated_at")
+
+  audit   OnPageAudit @relation(fields: [auditId], references: [id], onDelete: Cascade)
+  project Project     @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  @@index([auditId])
+  @@index([projectId])
+  @@index([projectId, severity])
+  @@map("on_page_issues")
+}
+
+// ─── AI Platform ──────────────────────────────────────────────────────────────
+
+model AIPlatform {
+  id       String  @id @default(cuid())
+  name     String
+  slug     String  @unique
+  apiType  ApiType @map("api_type")
+  isActive Boolean @default(true) @map("is_active")
+  isDemo   Boolean @default(false) @map("is_demo")
+
+  aiBrandMentionChecks AIBrandMentionCheck[]
+
+  @@map("ai_platforms")
+}
+
+// ─── AI Brand Mention Check ───────────────────────────────────────────────────
+
+model AIBrandMentionCheck {
+  id              String     @id @default(cuid())
+  projectId       String     @map("project_id")
+  platformId      String     @map("platform_id")
+  prompt          String     @db.Text
+  response        String?    @db.Text
+  isMentioned     Boolean    @default(false) @map("is_mentioned")
+  mentionPosition Int?       @map("mention_position")
+  sentiment       Sentiment?
+  score           Float?
+  snapshotDate    DateTime   @map("snapshot_date")
+  isDemo          Boolean    @default(false) @map("is_demo")
+
+  project  Project    @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  platform AIPlatform @relation(fields: [platformId], references: [id], onDelete: Cascade)
+
+  @@index([projectId])
+  @@index([platformId])
+  @@index([snapshotDate])
+  @@index([projectId, snapshotDate])
+  @@map("ai_brand_mention_checks")
+}
+
+// ─── Competitor ───────────────────────────────────────────────────────────────
+
+model Competitor {
+  id        String   @id @default(cuid())
+  projectId String   @map("project_id")
+  domain    String
+  name      String?
+  isManual  Boolean  @default(false) @map("is_manual")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  project             Project              @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  competitorSnapshots CompetitorSnapshot[]
+
+  @@index([projectId])
+  @@map("competitors")
+}
+
+// ─── Competitor Snapshot ──────────────────────────────────────────────────────
+
+model CompetitorSnapshot {
+  id              String   @id @default(cuid())
+  competitorId    String   @map("competitor_id")
+  projectId       String   @map("project_id")
+  domainAuthority Float?   @map("domain_authority")
+  backlinksCount  Int?     @map("backlinks_count")
+  organicKeywords Int?     @map("organic_keywords")
+  snapshotDate    DateTime @map("snapshot_date")
+  isDemo          Boolean  @default(false) @map("is_demo")
+
+  competitor Competitor @relation(fields: [competitorId], references: [id], onDelete: Cascade)
+  project    Project    @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  @@index([competitorId])
+  @@index([projectId])
+  @@index([snapshotDate])
+  @@map("competitor_snapshots")
+}
+
+// ─── Scheduled Job ────────────────────────────────────────────────────────────
+
+model ScheduledJob {
+  id           String    @id @default(cuid())
+  projectId    String    @map("project_id")
+  jobType      JobType   @map("job_type")
+  status       JobStatus @default(PENDING)
+  lastRunAt    DateTime? @map("last_run_at")
+  nextRunAt    DateTime? @map("next_run_at")
+  errorMessage String?   @db.Text @map("error_message")
+  createdAt    DateTime  @default(now()) @map("created_at")
+  updatedAt    DateTime  @updatedAt @map("updated_at")
+
+  project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  @@index([projectId])
+  @@index([status])
+  @@map("scheduled_jobs")
+}
+
+// ─── Report ───────────────────────────────────────────────────────────────────
+
+model Report {
+  id          String   @id @default(cuid())
+  projectId   String   @map("project_id")
+  title       String
+  period      String
+  generatedAt DateTime @default(now()) @map("generated_at")
+  data        Json
+
+  project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  @@index([projectId])
+  @@index([generatedAt])
+  @@map("reports")
+}
