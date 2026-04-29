@@ -8,8 +8,8 @@ import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { BacklinkTabs } from "./backlink-tabs";
 import { Link2, TrendingUp, TrendingDown, Globe } from "lucide-react";
-import type { Backlink } from "@/app/generated/prisma";
-import type { ReferringDomain } from "@/app/generated/prisma";
+import type { Backlink } from "@/prisma/generated/prisma";
+import type { ReferringDomain } from "@/prisma/generated/prisma";
 
 // ─── helpers ──────────────────────────────────────────────────────────────────
 

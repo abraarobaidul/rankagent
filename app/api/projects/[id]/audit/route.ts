@@ -4,7 +4,7 @@ import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { getWebCrawlerProvider } from "@/lib/providers";
 import { calcSEOHealthScore } from "@/lib/scoring";
-import { IssueSeverity } from "@/app/generated/prisma";
+import { IssueSeverity } from "@/prisma/generated/prisma";
 
 export async function POST(
   _req: Request,

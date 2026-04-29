@@ -9,7 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { Brain, Info } from "lucide-react";
 import { formatDate } from "@/lib/utils";
-import type { Sentiment } from "@/app/generated/prisma";
+import type { Sentiment } from "@/prisma/generated/prisma";
 
 // ─── helpers ──────────────────────────────────────────────────────────────────
 

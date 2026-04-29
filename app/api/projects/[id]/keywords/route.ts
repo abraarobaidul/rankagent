@@ -3,7 +3,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { z } from "zod";
-import { SearchEngine } from "@/app/generated/prisma";
+import { SearchEngine } from "@/prisma/generated/prisma";
 
 const createSchema = z.object({
   term: z.string().min(1).max(250),

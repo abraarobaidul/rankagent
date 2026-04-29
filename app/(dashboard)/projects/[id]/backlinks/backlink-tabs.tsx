@@ -4,8 +4,8 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Card, CardContent } from "@/components/ui/card";
 import { LinkStatusBadge, FollowBadge } from "./badges";
 import { formatDate, formatNumber, getDomainFromUrl } from "@/lib/utils";
-import type { Backlink } from "@/app/generated/prisma";
-import type { ReferringDomain } from "@/app/generated/prisma";
+import type { Backlink } from "@/prisma/generated/prisma";
+import type { ReferringDomain } from "@/prisma/generated/prisma";
 import { Link2 } from "lucide-react";
 
 interface BacklinkTabsProps {
