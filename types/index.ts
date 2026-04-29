@@ -25,7 +25,7 @@ export type {
   Sentiment,
   SearchEngine,
   ApiType,
-} from "@/prisma/generated/prisma";
+} from "@prisma/client";
 
 // ─── UI / Service layer types ─────────────────────────────────────────────────
 

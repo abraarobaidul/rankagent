@@ -11,8 +11,8 @@ import { Separator } from "@/components/ui/separator";
 import { AuditTabs } from "./audit-tabs";
 import { Shield, AlertTriangle, Info, CheckCircle2 } from "lucide-react";
 import { formatDate } from "@/lib/utils";
-import type { IssueSeverity } from "@/prisma/generated/prisma";
-import type { OnPageIssue } from "@/prisma/generated/prisma";
+import type { IssueSeverity } from "@prisma/client";
+import type { OnPageIssue } from "@prisma/client";
 
 // ─── helpers ──────────────────────────────────────────────────────────────────
 

@@ -3,7 +3,7 @@
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Card, CardContent } from "@/components/ui/card";
 import { SeverityBadge } from "./badges";
-import type { OnPageIssue } from "@/prisma/generated/prisma";
+import type { OnPageIssue } from "@prisma/client";
 
 interface AuditTabsProps {
   allIssues: OnPageIssue[];
